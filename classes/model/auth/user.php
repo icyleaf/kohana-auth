@@ -10,25 +10,40 @@ class Model_Auth_User extends ORM {
 
 	// Validation rules
 	protected $_rules = array(
-		'username' => array(
+		'email' => array(
 			'not_empty'  => NULL,
 			'min_length' => array(4),
-			'max_length' => array(32),
-			'regex'      => array('/^[-\pL\pN_.]++$/uD'),
+			'max_length' => array(127),
+			'email'      => NULL,
 		),
 		'password' => array(
 			'not_empty'  => NULL,
 			'min_length' => array(5),
 			'max_length' => array(42),
 		),
-		'password_confirm' => array(
-			'matches'    => array('password'),
+		'nickname' => array
+		(
+			'not_empty'  => NULL,
+			'min_length' => array(3),
+			'max_length' => array(32),
 		),
+	);
+
+	protected $_custom_rules = array(
 		'email' => array(
 			'not_empty'  => NULL,
 			'min_length' => array(4),
 			'max_length' => array(127),
 			'email'      => NULL,
+		),
+		'username' => array(
+			'not_empty'  => NULL,
+			'min_length' => array(4),
+			'max_length' => array(32),
+			'regex'      => array('/^[-\pL\pN_.]++$/uD'),
+		),
+		'password_confirm' => array(
+			'matches'    => array('password'),
 		),
 	);
 
@@ -59,11 +74,13 @@ class Model_Auth_User extends ORM {
 	 */
 	public function login(array & $array, $redirect = FALSE)
 	{
+		// Get the login field
+		$field = $this->unique_key($array['username']);
 		$array = Validate::factory($array)
-			->label('username', $this->_labels['username'])
+			->label('username', $this->_labels[$field])
 			->label('password', $this->_labels['password'])
 			->filter(TRUE, 'trim')
-			->rules('username', $this->_rules['username'])
+			->rules('username', $this->_custom_rules[$field])
 			->rules('password', $this->_rules['password']);
 
 		// Get the remember login option
@@ -75,7 +92,7 @@ class Model_Auth_User extends ORM {
 		if ($array->check())
 		{
 			// Attempt to load the user
-			$this->where('username', '=', $array['username'])->find();
+			$this->where($field, '=', $array['username'])->find();
 
 			if ($this->loaded() AND Auth::instance()->login($this, $array['password'], $remember))
 			{
@@ -112,7 +129,7 @@ class Model_Auth_User extends ORM {
 			->label('password_confirm', $this->_labels['password_confirm'])
 			->filter(TRUE, 'trim')
 			->rules('password', $this->_rules['password'])
-			->rules('password_confirm', $this->_rules['password_confirm']);
+			->rules('password_confirm', $this->_custom_rules['password_confirm']);
 
 		if ($status = $array->check())
 		{
@@ -132,7 +149,7 @@ class Model_Auth_User extends ORM {
 	/**
 	 * Complete the login for a user by incrementing the logins and saving login timestamp
 	 *
-	 * @return void 
+	 * @return void
 	 */
 	public function complete_login()
 	{
@@ -181,6 +198,22 @@ class Model_Auth_User extends ORM {
 		if ($this->unique_key_exists($array[$field]))
 		{
 			$array->error($field, 'email_available', array($array[$field]));
+		}
+	}
+
+	/**
+	 * Does the reverse of unique_key_exists() by triggering error if email exists.
+	 * Validation callback.
+	 *
+	 * @param   Validate  Validate object
+	 * @param   string    field name
+	 * @return  void
+	 */
+	public function email_not_available(Validate $array, $field)
+	{
+		if ( ! $this->unique_key_exists($array[$field]))
+		{
+			$array->error($field, 'unregistered', array($array[$field]));
 		}
 	}
 
