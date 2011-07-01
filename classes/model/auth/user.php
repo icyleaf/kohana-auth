@@ -262,14 +262,14 @@ class Model_Auth_User extends ORM {
 	 *
 	 * @return  ORM
 	 */
-	public function save()
+	public function save(Validation $validation = NULL)
 	{
 		if (array_key_exists('password', $this->_changed))
 		{
 			$this->_object['password'] = Auth::instance()->hash_password($this->_object['password']);
 		}
 
-		return parent::save();
+		return parent::save($validation);
 	}
 
 } // End Auth User Model
