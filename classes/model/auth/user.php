@@ -1,5 +1,12 @@
 <?php defined('SYSPATH') or die('No direct access allowed.');
-
+/**
+ * Default auth user
+ *
+ * @package    Kohana/Auth
+ * @author     Kohana Team
+ * @copyright  (c) 2007-2010 Kohana Team
+ * @license    http://kohanaframework.org/license
+ */
 class Model_Auth_User extends ORM {
 
 	// Relationships
@@ -74,13 +81,12 @@ class Model_Auth_User extends ORM {
 	 */
 	public function login(array & $array, $redirect = FALSE)
 	{
-		// Get the login field
-		$field = $this->unique_key($array['username']);
+		$fieldname = $this->unique_key($array['username']);
 		$array = Validate::factory($array)
-			->label('username', $this->_labels[$field])
+			->label('username', $this->_labels[$fieldname])
 			->label('password', $this->_labels['password'])
 			->filter(TRUE, 'trim')
-			->rules('username', $this->_custom_rules[$field])
+			->rules('username', $this->_rules[$fieldname])
 			->rules('password', $this->_rules['password']);
 
 		// Get the remember login option
@@ -92,7 +98,7 @@ class Model_Auth_User extends ORM {
 		if ($array->check())
 		{
 			// Attempt to load the user
-			$this->where($field, '=', $array['username'])->find();
+			$this->where($fieldname, '=', $array['username'])->find();
 
 			if ($this->loaded() AND Auth::instance()->login($this, $array['password'], $remember))
 			{
@@ -160,7 +166,7 @@ class Model_Auth_User extends ORM {
 		}
 
 		// Update the number of logins
-		$this->logins += 1;
+		$this->logins = new Database_Expression('logins + 1');
 
 		// Set the last login date
 		$this->last_login = time();
@@ -179,7 +185,7 @@ class Model_Auth_User extends ORM {
 	 */
 	public function username_available(Validate $array, $field)
 	{
-		if ($this->unique_key_exists($array[$field]))
+		if ($this->unique_key_exists($array[$field], 'username'))
 		{
 			$array->error($field, 'username_available', array($array[$field]));
 		}
@@ -195,7 +201,7 @@ class Model_Auth_User extends ORM {
 	 */
 	public function email_available(Validate $array, $field)
 	{
-		if ($this->unique_key_exists($array[$field]))
+		if ($this->unique_key_exists($array[$field], 'email'))
 		{
 			$array->error($field, 'email_available', array($array[$field]));
 		}
@@ -221,13 +227,20 @@ class Model_Auth_User extends ORM {
 	 * Tests if a unique key value exists in the database.
 	 *
 	 * @param   mixed    the value to test
+	 * @param   string   field name
 	 * @return  boolean
 	 */
-	public function unique_key_exists($value)
+	public function unique_key_exists($value, $field = NULL)
 	{
+		if ($field === NULL)
+		{
+			// Automatically determine field by looking at the value
+			$field = $this->unique_key($value);
+		}
+
 		return (bool) DB::select(array('COUNT("*")', 'total_count'))
 			->from($this->_table_name)
-			->where($this->unique_key($value), '=', $value)
+			->where($field, '=', $value)
 			->where($this->_primary_key, '!=', $this->pk())
 			->execute($this->_db)
 			->get('total_count');

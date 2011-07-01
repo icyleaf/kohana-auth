@@ -8,6 +8,8 @@ return array(
 	'lifetime'     => 1209600,
 	'session_key'  => 'auth_user',
 	'login_role'   => 'member',
+	'autologin_key' => 'auth_autologin',
+	'forced_key'    => 'auth_forced',
 
 	// Username/password combinations for the Auth File driver
 	'users' => array(
