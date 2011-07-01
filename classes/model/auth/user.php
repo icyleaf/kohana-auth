@@ -86,7 +86,7 @@ class Model_Auth_User extends ORM {
 			->label('username', $this->_labels[$fieldname])
 			->label('password', $this->_labels['password'])
 			->filter(TRUE, 'trim')
-			->rules('username', $this->_rules[$fieldname])
+			->rules('username', $this->_custom_rules[$fieldname])
 			->rules('password', $this->_rules['password']);
 
 		// Get the remember login option
@@ -262,14 +262,14 @@ class Model_Auth_User extends ORM {
 	 *
 	 * @return  ORM
 	 */
-	public function save(Validation $validation = NULL)
+	public function save()
 	{
 		if (array_key_exists('password', $this->_changed))
 		{
 			$this->_object['password'] = Auth::instance()->hash_password($this->_object['password']);
 		}
 
-		return parent::save($validation);
+		return parent::save();
 	}
 
 } // End Auth User Model
